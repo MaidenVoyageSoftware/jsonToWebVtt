@@ -8,7 +8,12 @@ function secondsToWebVtt($seconds) {
 	$hours = floor($seconds / 3600);
 	$minutes = floor($seconds / 60) - $hours * 60;
 	$seconds = $seconds - $hours*3600 - $minutes*60;
-	return number_format($hours, 0, '.', '') . ':' . number_format($minutes, 0, '.', '') . ':' . number_format($seconds, 2, '.', '');
+	$hours = number_format($hours, 0, '.', '');
+	$hours = str_repeat('0', 2 - strlen($hours)) . $hours;
+	$minutes = number_format($minutes, 0, '.', '');
+	$minutes = str_repeat('0', 2 - strlen($minutes)) . $minutes;
+	$seconds = $seconds !== 0 ? (($seconds < 10 ? '0' : '') . number_format($seconds, 3, '.', '')) : '00.00';
+	return $hours . ':' . $minutes . ':' . $seconds;
 }
 
 //If it is time for a new line, push these words to the return string
