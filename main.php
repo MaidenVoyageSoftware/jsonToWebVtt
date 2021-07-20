@@ -27,8 +27,8 @@ function handleWordBreak($startTime, $endTime, $currentString) {
  */
 function awsTranscribeToWebVtt($jsonString) {
 	//Number of characters to break on for after punctuation/not after punctuation
-	$WORD_BREAK_WITH_PUNCTUATION = 30;
-	$WORD_BREAK_WITHOUT_PUNCTUATION = 50;
+	$LINE_BREAK_WITH_PUNCTUATION = 30;
+	$LINE_BREAK_WITHOUT_PUNCTUATION = 50;
 
 	//Inputs
 	$jsonObj = json_decode($jsonString);
@@ -49,7 +49,7 @@ function awsTranscribeToWebVtt($jsonString) {
 			if($word->type === "punctuation") {
 				$currentString .= $word->alternatives[0]->content;
 				//If we overflow this time, set the currentString to '' and push everything to returnString
-				if (strlen($currentString) >= $WORD_BREAK_WITH_PUNCTUATION) {
+				if (strlen($currentString) >= $LINE_BREAK_WITH_PUNCTUATION) {
 					$returnString .= handleWordBreak($startTime, $endTime, $currentString);
 					$startTime = null;
 					$currentString = '';
@@ -64,7 +64,7 @@ function awsTranscribeToWebVtt($jsonString) {
 			$tempString = $currentString . ($currentString == '' ? '' : ' ') . $word->alternatives[0]->content;
 			//If we overflow this time, set the currentString to 'thisWord' and push everything except this word to returnString
 			//This makes it so that punctuation isn't by itself on a new line.
-			if (strlen($tempString) >= $WORD_BREAK_WITHOUT_PUNCTUATION) {
+			if (strlen($tempString) >= $LINE_BREAK_WITHOUT_PUNCTUATION) {
 				$returnString .= handleWordBreak($startTime, $endTime, $currentString);
 
 				$startTime = $word->start_time;
