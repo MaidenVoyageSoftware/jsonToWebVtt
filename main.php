@@ -11,6 +11,17 @@ function secondsToWebVtt($seconds) {
 	return number_format($hours, 0, '.', '') . ':' . number_format($minutes, 0, '.', '') . ':' . number_format($seconds, 2, '.', '');
 }
 
+//If it is time for a new line, push these words to the return string
+//Format (substitute in times):
+//```
+//st:ar:ti.me --> en:dt:im.e0
+//Text for 30 to 50 characters
+//
+//```
+function handleWordBreak($startTime, $endTime, $currentString) {
+	return secondsToWebVtt($startTime) . ' --> ' . secondsToWebVtt($endTime) . "\n$currentString\n\n";
+}
+
 /**
  * A function to take in awsTranscribe JSON and make it into webVTT
  */
@@ -33,36 +44,45 @@ function awsTranscribeToWebVtt($jsonString) {
 	$wordBreak = false;
 	//Loop over every word/punctuation mark
 	foreach($words as $word) {
+		//if the word is actually punctuation, handle it
 		if (is_null($word->start_time)) {
 			if($word->type === "punctuation") {
 				$currentString .= $word->alternatives[0]->content;
-				$wordBreak = (strlen($currentString) >= $WORD_BREAK_WITH_PUNCTUATION);
+				//If we overflow this time, set the currentString to '' and push everything to returnString
+				if (strlen($currentString) >= $WORD_BREAK_WITH_PUNCTUATION) {
+					$returnString .= handleWordBreak($startTime, $endTime, $currentString);
+					$startTime = null;
+					$currentString = '';
+				}
 			}
 		}
+		//Otherwise, we have a word
 		else {
 			if (is_null($startTime)) {
 				$startTime = $word->start_time;
 			}
-			$endTime = $word->end_time;
-			$currentString .= ($currentString == '' ? '' : ' ') . $word->alternatives[0]->content;
-			$wordBreak = (strlen($currentString) >= $WORD_BREAK_WITHOUT_PUNCTUATION);
-		}
+			$tempString = $currentString . ($currentString == '' ? '' : ' ') . $word->alternatives[0]->content;
+			//If we overflow this time, set the currentString to 'thisWord' and push everything except this word to returnString
+			//This makes it so that punctuation isn't by itself on a new line.
+			if (strlen($tempString) >= $WORD_BREAK_WITHOUT_PUNCTUATION) {
+				$returnString .= handleWordBreak($startTime, $endTime, $currentString);
 
-		if($wordBreak) {
-			$returnString .= secondsToWebVtt($startTime) . ' --> ' . secondsToWebVtt($endTime) . "\n";
-			$returnString .= $currentString . "\n\n";
-			$startTime = null;
-			$currentString = '';
+				$startTime = $word->start_time;
+				$endTime = $word->end_time;
+				$currentString = $word->alternatives[0]->content;
+			}
+			else {
+				$endTime = $word->end_time;
+				$currentString = $tempString;
+			}
 		}
+	}
+
+	//Catch the words in currentString after the loop finishes
+	if($currentString !== '') {
+		$returnString .= handleWordBreak($startTime, $endTime, $currentString);
 	}
 
 	return $returnString;
 }
-
-
-function test($filename) {
-	return awsTranscribeToWebVtt(file_get_contents($filename));
-}
-
-echo test('test.json');
 ?>
