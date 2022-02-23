@@ -1,5 +1,5 @@
 # jsonToWebVtt
-Converts from AWS Transcribe JSON to WebVTT
+1Converts from AWS Transcribe JSON to WebVTT
 
 # Example Usage
 Get the vtt file as a string
